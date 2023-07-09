@@ -72,3 +72,10 @@ Plugins/*/Intermediate/*
 
 # Cache files for the editor to use
 DerivedDataCache/*
+
+
+# Exclude idea files
+.idea
+
+# .vsconfig 
+.vsconfig
