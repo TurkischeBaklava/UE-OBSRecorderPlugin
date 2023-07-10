@@ -27,7 +27,10 @@ public class UEOBSRecorder : ModuleRules
 			{
 				"Core",
 				"WebSockets",
-				"OpenSSL"
+				"OpenSSL",
+				"JsonBlueprintUtilities",
+				"JsonUtilities",
+				"Json"
 				// ... add other public dependencies that you statically link with here ...
 			}
 			);
@@ -39,7 +42,8 @@ public class UEOBSRecorder : ModuleRules
 				"CoreUObject",
 				"Engine",
 				"Slate",
-				"SlateCore"
+				"SlateCore", 
+				"HashSHA256"
 				// ... add private dependencies that you statically link with here ...	
 			}
 			);

@@ -21,7 +21,8 @@ public:
 	void Deinitialize() override;
 	
 	TSharedPtr<IWebSocket> WebSocket;
-	
-	static FString GenerateAuthenticationKey(FString& Password,FString& Salt,FString& Challenge); 
-	
+
+	//Generates the key
+	static FString GenerateAuthenticationKey(const FString& Salt,const FString& Challenge);
+
 };
