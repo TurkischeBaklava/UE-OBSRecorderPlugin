@@ -24,5 +24,6 @@ public:
 
 	//Generates the key
 	static FString GenerateAuthenticationKey(const FString& Salt,const FString& Challenge);
+	
 
 };
