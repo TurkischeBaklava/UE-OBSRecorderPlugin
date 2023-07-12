@@ -18,6 +18,7 @@ void UOBSRecorder::Initialize(FSubsystemCollectionBase& Collection)
 {
 	Super::Initialize(Collection);
 
+	//Load WebSocket module if already not
 	if (!FModuleManager::Get().IsModuleLoaded("WebSockets"))
 	{
 		FModuleManager::Get().LoadModule("WebSockets");
@@ -31,19 +32,13 @@ void UOBSRecorder::Initialize(FSubsystemCollectionBase& Collection)
 	const FString Password = TEXT("yVlXQondHRJWsWuS");
 
 	WebSocket = FWebSocketsModule::Get().CreateWebSocket(URL, Protocol);
-	
+
 	WebSocket->OnConnected().AddLambda([Port,Protocol]()
 	{
 		UE_LOG(LogWebSocket, Display, TEXT("Connected to websocket server succesfully: \n\tPort: %s\n\tProtocol: %s\n"),
 		       *Port, *Protocol);
 	});
 
-	WebSocket->OnConnectionError().AddLambda([Port,Protocol](const FString& ErrorMessage)
-	{
-		UE_LOG(LogWebSocket, Error,
-		       TEXT("Failed to connect to WebSocket server: \n\tPort: %s\n\tProtocol: %s\n\tError Message: %s\n"),
-		       *Port, *Protocol, *ErrorMessage);
-	});
 
 	WebSocket->OnMessage().AddLambda([&,Password](const FString Message)
 	{
@@ -54,10 +49,29 @@ void UOBSRecorder::Initialize(FSubsystemCollectionBase& Collection)
 		const TSharedPtr<FJsonObject> OBSJsonResponse = JsonObjectWrapper.JsonObject;
 
 		const FString MessageType = OBSJsonResponse->GetStringField("op");
+
+		//Identify if receive OpCode0
+		if (MessageType == FString::FromInt(OpCode0)) Identify(OBSJsonResponse, Password);
+		//Log OpCode 2
+		else if (MessageType == FString::FromInt(OpCode2)) UE_LOG(LogOBSRecorder, Log,
+		                                    TEXT(
+			                                    "The identify request was received and validated, and the connection is now ready for normal operation."
+		                                    ));
 		
-		if(MessageType == "0") RespondOpCode0(OBSJsonResponse, Password);
-		else if (MessageType == "2") RespondOpCode2();
-	
+	});
+
+	WebSocket->OnConnectionError().AddLambda([Port,Protocol](const FString& ErrorMessage)
+	{
+		UE_LOG(LogWebSocket, Error,
+		       TEXT("Failed to connect to WebSocket server: \n\tPort: %s\n\tProtocol: %s\n\tError Message: %s\n"),
+		       *Port, *Protocol, *ErrorMessage);
+	});
+
+	WebSocket->OnClosed().AddLambda([Port,Protocol](int32 StatusCode, const FString& Reason, bool bWasClean)
+	{
+		UE_LOG(LogWebSocket, Display,
+		       TEXT("WebSocket connection closed: \n\tPort: %s\n\tProtocol: %s\n\tStatus Code: %d\n\tReason: %s\n\tWas Clean: %d\n"),
+		       *Port, *Protocol,StatusCode,*Reason,bWasClean);
 	});
 }
 
@@ -72,9 +86,12 @@ void UOBSRecorder::Deinitialize()
 }
 
 
-void UOBSRecorder::StartConnection()
+void UOBSRecorder::StartConnection(bool& Success)
 {
-	WebSocket->Connect();
+	if (!WebSocket->IsConnected())
+	{
+		WebSocket->Connect();
+	}
 }
 
 FString UOBSRecorder::GenerateAuthenticationKey(const FString& Password, const FString& Salt, const FString& Challenge)
@@ -99,6 +116,7 @@ FString UOBSRecorder::GenerateAuthenticationKey(const FString& Password, const F
 
 	return SecretString;
 }
+
 FString UOBSRecorder::HexToBase64(FString& HexString)
 {
 	uint8* Source = new uint8[32]; //TODO: Fix 
@@ -110,16 +128,18 @@ FString UOBSRecorder::HexToBase64(FString& HexString)
 	return HexString;
 }
 
-void UOBSRecorder::RespondOpCode0(const TSharedPtr<FJsonObject> OBSJsonResponse, const FString& Password)
+void UOBSRecorder::Identify(const TSharedPtr<FJsonObject> HelloMessageJson, const FString& Password)
 {
 	UE_LOG(LogOBSRecorder, Display, TEXT("Hello OBSWebsocket!"));
 	UE_LOG(LogOBSRecorder, Display, TEXT("Generating authenticator key and verifying client..."));
 
-	const FString Challenge = OBSJsonResponse->GetObjectField("d")->GetObjectField("authentication")->GetStringField(
+	//Get challenge field
+	const FString Challenge = HelloMessageJson->GetObjectField("d")->GetObjectField("authentication")->GetStringField(
 		"challenge");
 
-	const FString Salt = OBSJsonResponse->GetObjectField("d")->GetObjectField("authentication")->
-	                                      GetStringField("salt");
+	//Get salt field
+	const FString Salt = HelloMessageJson->GetObjectField("d")->GetObjectField("authentication")->
+	                                       GetStringField("salt");
 
 	const FString AuthenticationKey = GenerateAuthenticationKey(Password, Salt, Challenge);
 
@@ -130,4 +150,8 @@ void UOBSRecorder::RespondOpCode0(const TSharedPtr<FJsonObject> OBSJsonResponse,
 		*AuthenticationKey);
 
 	WebSocket->Send(IdentifyMessage); //Sends 
+}
+
+void UOBSRecorder::FormJsonMessage(const EClientRequest Request)
+{
 }
