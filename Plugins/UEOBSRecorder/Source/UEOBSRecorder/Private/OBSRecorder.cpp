@@ -6,6 +6,7 @@
 #include "SHA256Hash.h"
 #include "HashSHA256BPLibrary.h"
 #include "JsonBlueprintFunctionLibrary.h"
+#include "JsonObjectConverter.h"
 #include "JsonObjectWrapper.h"
 #include "Containers/UnrealString.h"
 #include "WebSocketsModule.h"
@@ -52,12 +53,11 @@ void UOBSRecorder::Initialize(FSubsystemCollectionBase& Collection)
 
 		//Identify if receive OpCode0
 		if (MessageType == FString::FromInt(OpCode0)) Identify(OBSJsonResponse, Password);
-		//Log OpCode 2
+			//Log OpCode 2
 		else if (MessageType == FString::FromInt(OpCode2)) UE_LOG(LogOBSRecorder, Log,
-		                                    TEXT(
-			                                    "The identify request was received and validated, and the connection is now ready for normal operation."
-		                                    ));
-		
+		                                                          TEXT(
+			                                                          "The identify request was received and validated, and the connection is now ready for normal operation."
+		                                                          ));
 	});
 
 	WebSocket->OnConnectionError().AddLambda([Port,Protocol](const FString& ErrorMessage)
@@ -70,8 +70,10 @@ void UOBSRecorder::Initialize(FSubsystemCollectionBase& Collection)
 	WebSocket->OnClosed().AddLambda([Port,Protocol](int32 StatusCode, const FString& Reason, bool bWasClean)
 	{
 		UE_LOG(LogWebSocket, Display,
-		       TEXT("WebSocket connection closed: \n\tPort: %s\n\tProtocol: %s\n\tStatus Code: %d\n\tReason: %s\n\tWas Clean: %d\n"),
-		       *Port, *Protocol,StatusCode,*Reason,bWasClean);
+		       TEXT(
+			       "WebSocket connection closed: \n\tPort: %s\n\tProtocol: %s\n\tStatus Code: %d\n\tReason: %s\n\tWas Clean: %d\n"
+		       ),
+		       *Port, *Protocol, StatusCode, *Reason, bWasClean);
 	});
 }
 
@@ -144,14 +146,19 @@ void UOBSRecorder::Identify(const TSharedPtr<FJsonObject> HelloMessageJson, cons
 	const FString AuthenticationKey = GenerateAuthenticationKey(Password, Salt, Challenge);
 
 	//Create Identify (OpCode 1) message
-	//TODO: Fix
-	const FString IdentifyMessage = FString::Printf(
-		TEXT("{\"op\": 1,\"d\": {\"rpcVersion\": 1,\"authentication\": \"%s\",\"eventSubscriptions\": 33}}"),
-		*AuthenticationKey);
-
+	
+	const FString IdentifyMessage = FormJsonMessage(FMessage(OpCode1,FDataField(AuthenticationKey)));
+	/*UE_LOG(LogTemp, Display, TEXT("Json Message from struct: %s"),
+	       *IdentifyMessage);*/
 	WebSocket->Send(IdentifyMessage); //Sends 
 }
 
-void UOBSRecorder::FormJsonMessage(const EClientRequest Request)
+const FString UOBSRecorder::FormJsonMessage(const FMessage& Message)
 {
+	FString JsonString;
+	if (FJsonObjectConverter::UStructToJsonObjectString(Message, JsonString))
+	{
+		return JsonString;
+	}
+	return FString(TEXT("Failed to form the message!"));
 }
