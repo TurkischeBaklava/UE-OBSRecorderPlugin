@@ -36,14 +36,13 @@ void UOBSRecorder::Initialize(FSubsystemCollectionBase& Collection)
 
 	WebSocket->OnConnected().AddLambda([Port,Protocol]()
 	{
-		UE_LOG(LogWebSocket, Display, TEXT("Connected to websocket server succesfully: \n\tPort: %s\n\tProtocol: %s\n"),
+		UE_LOG(LogWebSocket, Log, TEXT("Connected to websocket server succesfully: \n\tPort: %s\n\tProtocol: %s\n"),
 		       *Port, *Protocol);
 	});
-
-
+	
 	WebSocket->OnMessage().AddLambda([&,Password](const FString Message)
 	{
-		UE_LOG(LogOBSRecorder, Display, TEXT("Message received: %s"), *Message);
+		UE_LOG(LogOBSRecorder, Log, TEXT("Message received: %s"), *Message);
 
 		FJsonObjectWrapper JsonObjectWrapper;
 		UJsonBlueprintFunctionLibrary::FromString(this->GetWorld(), Message, JsonObjectWrapper);
@@ -54,10 +53,19 @@ void UOBSRecorder::Initialize(FSubsystemCollectionBase& Collection)
 		//Identify if receive OpCode0
 		if (MessageType == FString::FromInt(OpCode0)) Identify(OBSJsonResponse, Password);
 			//Log OpCode 2
-		else if (MessageType == FString::FromInt(OpCode2)) UE_LOG(LogOBSRecorder, Log,
-		                                                          TEXT(
-			                                                          "The identify request was received and validated, and the connection is now ready for normal operation."
-		                                                          ));
+		else if (MessageType == FString::FromInt(OpCode2))
+		{
+			UE_LOG(LogOBSRecorder, Log,
+			       TEXT(
+				       "The identify request was received and validated, and the connection is now ready for normal operation."
+			       ));
+		}
+		
+	});
+
+	WebSocket->OnMessageSent().AddLambda([](const FString& MessageString)
+	{
+		UE_LOG(LogOBSRecorder,Log,TEXT("Message sent: %s"),*MessageString);	
 	});
 
 	WebSocket->OnConnectionError().AddLambda([Port,Protocol](const FString& ErrorMessage)
@@ -96,6 +104,11 @@ void UOBSRecorder::StartConnection(bool& Success)
 	}
 }
 
+void UOBSRecorder::StartRecord()
+{
+	WebSocket->Send(FormJsonMessage(FMessage(OpCode6,FRequestData("StartRecord",FGuid::NewGuid().ToString()))));
+}
+
 FString UOBSRecorder::GenerateAuthenticationKey(const FString& Password, const FString& Salt, const FString& Challenge)
 {
 	//Concatenate the websocket password with the salt provided by the server (password + salt)
@@ -132,8 +145,8 @@ FString UOBSRecorder::HexToBase64(FString& HexString)
 
 void UOBSRecorder::Identify(const TSharedPtr<FJsonObject> HelloMessageJson, const FString& Password)
 {
-	UE_LOG(LogOBSRecorder, Display, TEXT("Hello OBSWebsocket!"));
-	UE_LOG(LogOBSRecorder, Display, TEXT("Generating authenticator key and verifying client..."));
+	UE_LOG(LogOBSRecorder, Log, TEXT("Hello OBSWebsocket!"));
+	UE_LOG(LogOBSRecorder, Log, TEXT("Generating authenticator key and verifying client..."));
 
 	//Get challenge field
 	const FString Challenge = HelloMessageJson->GetObjectField("d")->GetObjectField("authentication")->GetStringField(
@@ -146,8 +159,8 @@ void UOBSRecorder::Identify(const TSharedPtr<FJsonObject> HelloMessageJson, cons
 	const FString AuthenticationKey = GenerateAuthenticationKey(Password, Salt, Challenge);
 
 	//Create Identify (OpCode 1) message
-	
-	const FString IdentifyMessage = FormJsonMessage(FMessage(OpCode1,FDataField(AuthenticationKey)));
+
+	const FString IdentifyMessage = FormJsonMessage(FMessage(OpCode1, FAuthData(AuthenticationKey)));
 	/*UE_LOG(LogTemp, Display, TEXT("Json Message from struct: %s"),
 	       *IdentifyMessage);*/
 	WebSocket->Send(IdentifyMessage); //Sends 

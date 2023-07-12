@@ -34,33 +34,82 @@ enum EClientRequest : int8
 };
 
 
-
+//TODO: Fix this
 USTRUCT()
-struct FDataField
+struct FData
 {
 	GENERATED_BODY()
-	FDataField(){}
-	FDataField(const FString& AuthenticationKey): Authentication(AuthenticationKey)
+};
+
+/**
+ * FAuthData
+ * 
+ **/
+USTRUCT()
+struct FAuthData : public FData
+{
+	GENERATED_BODY()
+	FAuthData()
+	{
+	}
+	FAuthData(const FString& AuthenticationKey): Authentication(AuthenticationKey)
 	{
 	}
 
 private:
-	UPROPERTY() uint8 RpcVersion{1};
-	UPROPERTY() FString Authentication;
-	UPROPERTY() uint8 EventSubscriptions{33};
+	UPROPERTY()
+	uint8 RpcVersion{1};
+	UPROPERTY()
+	FString Authentication;
+	UPROPERTY()
+	uint8 EventSubscriptions{33};
 };
 
+/**
+ * FRequestData
+ * 
+ **/
+USTRUCT()
+struct FRequestData : public FData
+{
+	GENERATED_BODY()
+	FRequestData()
+	{
+	}
+
+	FRequestData(const FString& RequestType, const FString& RequestId): requestType(RequestType), requestId(RequestId)
+	{
+	}
+
+private:
+	UPROPERTY()
+	FString requestType;
+	UPROPERTY()
+	FString requestId;
+};
+
+/**
+ * FMessage
+ * 
+ **/
 USTRUCT()
 struct FMessage
 {
 	GENERATED_BODY()
-	FMessage(){}
-	FMessage(const EClientRequest ClientRequest, const FDataField DataField)
-		:op(ClientRequest),d(DataField){}
+	FMessage()
+	{
+	}
+
+	FMessage(const EClientRequest ClientRequest, const FData& DataField)
+		: op(ClientRequest), d(DataField)
+	{
+	}
 
 private:
-	UPROPERTY() uint8 op;
-	UPROPERTY() FDataField d;
+	UPROPERTY()
+	uint8 op;
+	UPROPERTY()
+	FData d;
 };
 
 
@@ -87,6 +136,9 @@ public:
 	UFUNCTION(BlueprintCallable)
 	void StartConnection(bool& Success);
 
+	UFUNCTION(BlueprintCallable)
+	void StartRecord();
+
 	//Generates the key
 	static FString GenerateAuthenticationKey(const FString& Password, const FString& Salt, const FString& Challenge);
 
@@ -94,6 +146,7 @@ public:
 
 
 private:
+
 	/**
 	 * public void RespondOpCode0::StartConnection
 	 * Response(OpCode 1) to OpCode 0 message, should contain authentication string if authentication is required, along with PubSub subscriptions and other session parameters.
