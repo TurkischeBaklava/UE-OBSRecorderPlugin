@@ -108,6 +108,15 @@ public:
 	UFUNCTION(BlueprintCallable)
 	void StartRecord();
 
+
+	/**
+	* public void OBSRecorder::StopRecord \n
+	* Stop recording.
+	**/
+	UFUNCTION(BlueprintCallable)
+	void StopRecord();
+	
+
 	//Generates the key
 	static FString GenerateAuthenticationKey(const FString& Password, const FString& Salt, const FString& Challenge);
 

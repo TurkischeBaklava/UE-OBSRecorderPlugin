@@ -62,23 +62,13 @@ void UOBSRecorder::Initialize(FSubsystemCollectionBase& Collection)
 		}
 		else if (MessageType == FString::FromInt(OpCode5))
 		{
-			FString Respond = FString::Printf(TEXT("%s"),*MessageData->GetStringField("eventType"));
+			FString Respond = FString::Printf(TEXT("%s"), *MessageData->GetStringField("eventType"));
 		}
 		else if (MessageType == FString::FromInt(OpCode7))
 		{
-			FString Respond;
-			if (MessageData->GetObjectField("requestStatus")->GetBoolField("result"))
-			{
-				Respond = FString::Printf(
-					TEXT("Request successful: %s"),
-					*MessageData->GetStringField("requestType"));
-			}
-			else
-			{
-				Respond = FString::Printf(
-					TEXT("Request unsuccessful: %s"),
-					*MessageData->GetObjectField("requestStatus")->GetStringField("comment"));
-			}
+			FString Respond = MessageData->GetObjectField("requestStatus")->GetBoolField("result")
+				                  ? TEXT("Request successful!")
+				                  : TEXT("Request unsuccessful!");
 
 			UE_LOG(LogOBSRecorder, Log,
 			       TEXT(
@@ -115,7 +105,7 @@ void UOBSRecorder::Deinitialize()
 	if (WebSocket->IsConnected())
 	{
 		//Stop recording as we are closing the websocket connection.
-		//WebSocket->Send(FormJsonRequestMessage(FMessage(OpCode6, FRequestData("StopRecord", FGuid::NewGuid().ToString()))));
+		WebSocket->Send(FormJsonRequestMessage(FMessage(OpCode6, FRequestData("StopRecord", FGuid::NewGuid().ToString()))));
 		WebSocket->Close();
 	}
 	Super::Deinitialize();
@@ -139,7 +129,13 @@ void UOBSRecorder::StartConnection(bool& Success)
 void UOBSRecorder::StartRecord()
 {
 	WebSocket->Send(
-		FormJsonRequestMessage(FMessage(OpCode6, FRequestData("StopRecord", FGuid::NewGuid().ToString()))));
+		FormJsonRequestMessage(FMessage(OpCode6, FRequestData("StartRecord", FGuid::NewGuid().ToString()))));
+}
+
+void UOBSRecorder::StopRecord()
+{
+	//TODO: How can I get Json fields dynamically
+	WebSocket->Send(FormJsonRequestMessage(FMessage(OpCode6, FRequestData("StopRecord", FGuid::NewGuid().ToString()))));
 }
 
 
