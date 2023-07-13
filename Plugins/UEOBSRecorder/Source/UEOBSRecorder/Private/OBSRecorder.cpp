@@ -49,10 +49,10 @@ void UOBSRecorder::Initialize(FSubsystemCollectionBase& Collection)
 		const TSharedPtr<FJsonObject> OBSJsonResponse = JsonObjectWrapper.JsonObject;
 
 		const FString MessageType = OBSJsonResponse->GetStringField("op");
+		const TSharedPtr<FJsonObject> MessageData = OBSJsonResponse->GetObjectField("d");
 
-		//Identify if receive OpCode0
+		//Respond to OpCodes
 		if (MessageType == FString::FromInt(OpCode0)) Identify(OBSJsonResponse, Password);
-			//Log OpCode 2
 		else if (MessageType == FString::FromInt(OpCode2))
 		{
 			UE_LOG(LogOBSRecorder, Log,
@@ -60,9 +60,30 @@ void UOBSRecorder::Initialize(FSubsystemCollectionBase& Collection)
 				       "The identify request was received and validated, and the connection is now ready for normal operation."
 			       ));
 		}
+		else if (MessageType == FString::FromInt(OpCode5))
+		{
+			FString Respond = FString::Printf(TEXT("%s"),*MessageData->GetStringField("eventType"));
+		}
 		else if (MessageType == FString::FromInt(OpCode7))
 		{
-			
+			FString Respond;
+			if (MessageData->GetObjectField("requestStatus")->GetBoolField("result"))
+			{
+				Respond = FString::Printf(
+					TEXT("Request successful: %s"),
+					*MessageData->GetStringField("requestType"));
+			}
+			else
+			{
+				Respond = FString::Printf(
+					TEXT("Request unsuccessful: %s"),
+					*MessageData->GetObjectField("requestStatus")->GetStringField("comment"));
+			}
+
+			UE_LOG(LogOBSRecorder, Log,
+			       TEXT(
+				       "%s"
+			       ), *Respond);
 		}
 	});
 
@@ -93,11 +114,19 @@ void UOBSRecorder::Deinitialize()
 {
 	if (WebSocket->IsConnected())
 	{
+		//Stop recording as we are closing the websocket connection.
+		//WebSocket->Send(FormJsonRequestMessage(FMessage(OpCode6, FRequestData("StopRecord", FGuid::NewGuid().ToString()))));
 		WebSocket->Close();
 	}
 	Super::Deinitialize();
 }
 
+/****************
+ *	REQUESTS
+ *
+ *	
+ * 
+ **/
 
 void UOBSRecorder::StartConnection(bool& Success)
 {
@@ -110,7 +139,43 @@ void UOBSRecorder::StartConnection(bool& Success)
 void UOBSRecorder::StartRecord()
 {
 	WebSocket->Send(
-		FormJsonRequestMessage(FMessage(OpCode6, FRequestData("StartRecord", FGuid::NewGuid().ToString()))));
+		FormJsonRequestMessage(FMessage(OpCode6, FRequestData("StopRecord", FGuid::NewGuid().ToString()))));
+}
+
+
+void UOBSRecorder::Identify(const TSharedPtr<FJsonObject> HelloMessageJson, const FString& Password)
+{
+	UE_LOG(LogOBSRecorder, Log, TEXT("Hello OBSWebsocket!"));
+	UE_LOG(LogOBSRecorder, Log, TEXT("Generating authenticator key and verifying client..."));
+
+	//Get challenge field
+	const FString Challenge = HelloMessageJson->GetObjectField("d")->GetObjectField("authentication")->GetStringField(
+		"challenge");
+
+	//Get salt field
+	const FString Salt = HelloMessageJson->GetObjectField("d")->GetObjectField("authentication")->
+	                                       GetStringField("salt");
+
+	const FString AuthenticationKey = GenerateAuthenticationKey(Password, Salt, Challenge);
+
+	//Create Identify (OpCode 1) message
+
+	//TODO: Fix this
+	const FString IdentifyMessage = FString::Printf(
+		TEXT("{\"op\": 1,\"d\": {\"rpcVersion\": 1,\"authentication\": \"%s\",\"eventSubscriptions\": 33}}"),
+		*AuthenticationKey);
+
+	WebSocket->Send(IdentifyMessage); //Sends 
+}
+
+const FString UOBSRecorder::FormJsonRequestMessage(const FMessage& Message)
+{
+	FString JsonString;
+	if (FJsonObjectConverter::UStructToJsonObjectString(Message, JsonString))
+	{
+		return JsonString;
+	}
+	return FString(TEXT("Failed to form the message!"));
 }
 
 FString UOBSRecorder::GenerateAuthenticationKey(const FString& Password, const FString& Salt, const FString& Challenge)
@@ -145,39 +210,4 @@ FString UOBSRecorder::HexToBase64(FString& HexString)
 
 	delete[] Source;
 	return HexString;
-}
-
-void UOBSRecorder::Identify(const TSharedPtr<FJsonObject> HelloMessageJson, const FString& Password)
-{
-	UE_LOG(LogOBSRecorder, Log, TEXT("Hello OBSWebsocket!"));
-	UE_LOG(LogOBSRecorder, Log, TEXT("Generating authenticator key and verifying client..."));
-
-	//Get challenge field
-	const FString Challenge = HelloMessageJson->GetObjectField("d")->GetObjectField("authentication")->GetStringField(
-		"challenge");
-
-	//Get salt field
-	const FString Salt = HelloMessageJson->GetObjectField("d")->GetObjectField("authentication")->
-	                                       GetStringField("salt");
-
-	const FString AuthenticationKey = GenerateAuthenticationKey(Password, Salt, Challenge);
-
-	//Create Identify (OpCode 1) message
-
-	//TODO: Fix this
-	const FString IdentifyMessage = FString::Printf(
-		TEXT("{\"op\": 1,\"d\": {\"rpcVersion\": 1,\"authentication\": \"%s\",\"eventSubscriptions\": 33}}"),
-		*AuthenticationKey);
-	
-	WebSocket->Send(IdentifyMessage); //Sends 
-}
-
-const FString UOBSRecorder::FormJsonRequestMessage(const FMessage& Message)
-{
-	FString JsonString;
-	if (FJsonObjectConverter::UStructToJsonObjectString(Message, JsonString))
-	{
-		return JsonString;
-	}
-	return FString(TEXT("Failed to form the message!"));
 }

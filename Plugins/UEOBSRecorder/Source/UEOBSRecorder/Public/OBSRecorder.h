@@ -93,13 +93,18 @@ public:
 
 
 	/**
-	* public void OBSRecorder::StartConnection
+	* public void OBSRecorder::StartConnection \n
 	* Start a new connection with OBS websocket.
 	* @return Success value
 	**/
 	UFUNCTION(BlueprintCallable)
 	void StartConnection(bool& Success);
 
+	
+	/**
+	* public void OBSRecorder::StartRecord \n
+	* Start recording.
+	**/
 	UFUNCTION(BlueprintCallable)
 	void StartRecord();
 
