@@ -26,6 +26,8 @@ void UOBSRecorder::Initialize(FSubsystemCollectionBase& Collection)
 		UE_LOG(LogWebSocket, Warning, TEXT("WS module is loaded!"));
 	}
 
+	//TODO: Add these to plugin settings
+	
 	const FString Host = TEXT("ws://localhost:");
 	const FString Port = TEXT("4456");
 	const FString URL = Host + Port;
@@ -33,6 +35,11 @@ void UOBSRecorder::Initialize(FSubsystemCollectionBase& Collection)
 	const FString Password = TEXT("yVlXQondHRJWsWuS");
 
 	WebSocket = FWebSocketsModule::Get().CreateWebSocket(URL, Protocol);
+
+
+	/*
+	 * Initialize websocket events here.
+	 */
 
 	WebSocket->OnConnected().AddLambda([Port,Protocol]()
 	{
@@ -97,22 +104,37 @@ void UOBSRecorder::Initialize(FSubsystemCollectionBase& Collection)
 		       ),
 		       *Port, *Protocol, StatusCode, *Reason, bWasClean);
 	});
-}
 
+
+
+
+	FJsonObject JsonObject;
+	JsonObject.SetStringField(TEXT("Name"),TEXT("Alper"));
+	
+}
 
 void UOBSRecorder::Deinitialize()
 {
 	if (WebSocket->IsConnected())
 	{
-		//Stop recording as we are closing the websocket connection.
-		WebSocket->Send(FormJsonRequestMessage(FMessage(OpCode6, FRequestData("StopRecord", FGuid::NewGuid().ToString()))));
+		//Stop recording as we are closing the websocket connection. TODO: Currently does not work.
 		WebSocket->Close();
 	}
 	Super::Deinitialize();
 }
 
+
+
+
+
+
+
+
+
+
+
 /****************
- *	REQUESTS
+ *	CONNECTION
  *
  *	
  * 
@@ -126,19 +148,6 @@ void UOBSRecorder::StartConnection(bool& Success)
 	}
 }
 
-void UOBSRecorder::StartRecord()
-{
-	WebSocket->Send(
-		FormJsonRequestMessage(FMessage(OpCode6, FRequestData("StartRecord", FGuid::NewGuid().ToString()))));
-}
-
-void UOBSRecorder::StopRecord()
-{
-	//TODO: How can I get Json fields dynamically
-	WebSocket->Send(FormJsonRequestMessage(FMessage(OpCode6, FRequestData("StopRecord", FGuid::NewGuid().ToString()))));
-}
-
-
 void UOBSRecorder::Identify(const TSharedPtr<FJsonObject> HelloMessageJson, const FString& Password)
 {
 	UE_LOG(LogOBSRecorder, Log, TEXT("Hello OBSWebsocket!"));
@@ -150,28 +159,86 @@ void UOBSRecorder::Identify(const TSharedPtr<FJsonObject> HelloMessageJson, cons
 
 	//Get salt field
 	const FString Salt = HelloMessageJson->GetObjectField("d")->GetObjectField("authentication")->
-	                                       GetStringField("salt");
+										   GetStringField("salt");
 
 	const FString AuthenticationKey = GenerateAuthenticationKey(Password, Salt, Challenge);
 
 	//Create Identify (OpCode 1) message
 
-	//TODO: Fix this
-	const FString IdentifyMessage = FString::Printf(
-		TEXT("{\"op\": 1,\"d\": {\"rpcVersion\": 1,\"authentication\": \"%s\",\"eventSubscriptions\": 33}}"),
-		*AuthenticationKey);
+	const TSharedPtr<FJsonObject> IdentifyJsonObject = MakeShareable(new FJsonObject);
+	//TODO: Can you use TMaps here for convenience ??
+	IdentifyJsonObject->SetNumberField(TEXT("rpcVersion"),1);
+	IdentifyJsonObject->SetStringField(TEXT("authentication"),AuthenticationKey);
+	IdentifyJsonObject->SetNumberField(TEXT("eventSubscriptions"),33);
+	
 
-	WebSocket->Send(IdentifyMessage); //Sends 
+	WebSocket->Send(FormJsonMessage(OpCode1,IdentifyJsonObject)); //Sends 
 }
 
-const FString UOBSRecorder::FormJsonRequestMessage(const FMessage& Message)
+
+
+
+
+
+
+
+
+
+
+/****************
+ *	REQUESTS
+ *	Functions that send requests OBS
+ *	
+ * 
+ **/
+
+void UOBSRecorder::StartRecord()
 {
-	FString JsonString;
-	if (FJsonObjectConverter::UStructToJsonObjectString(Message, JsonString))
-	{
-		return JsonString;
-	}
-	return FString(TEXT("Failed to form the message!"));
+	const TSharedPtr<FJsonObject> RequestJsonObject = MakeShareable(new FJsonObject);
+	RequestJsonObject->SetStringField(TEXT("requestType"),TEXT("StartRecord"));
+	RequestJsonObject->SetStringField(TEXT("requestId"),FGuid::NewGuid().ToString());
+	
+	WebSocket->Send(FormJsonMessage(OpCode6,RequestJsonObject));
+}
+
+void UOBSRecorder::StopRecord()
+{
+	const TSharedPtr<FJsonObject> RequestJsonObject = MakeShareable(new FJsonObject);
+	RequestJsonObject->SetStringField(TEXT("requestType"),TEXT("StopRecord"));
+	RequestJsonObject->SetStringField(TEXT("requestId"),FGuid::NewGuid().ToString());
+	
+	WebSocket->Send(FormJsonMessage(OpCode6,RequestJsonObject));
+}
+
+
+
+
+
+
+
+
+
+
+/****************
+ *	HELPERS
+ *
+ *	
+ * 
+ **/
+
+
+const FString UOBSRecorder::FormJsonMessage(const EClientRequest OpCode, TSharedPtr<FJsonObject> DataJsonObject)
+{
+	TSharedRef<FJsonObject> JsonObject = MakeShareable(new FJsonObject);
+	//Add first level fields
+	JsonObject->SetNumberField(TEXT("op"),OpCode);
+	JsonObject->SetObjectField(TEXT("d"),DataJsonObject);
+
+	FString OutputJsonString;
+	TSharedRef<TJsonWriter<>> Writer = TJsonWriterFactory<>::Create(&OutputJsonString);
+	FJsonSerializer::Serialize(JsonObject,Writer);
+
+	return OutputJsonString;
 }
 
 FString UOBSRecorder::GenerateAuthenticationKey(const FString& Password, const FString& Salt, const FString& Challenge)

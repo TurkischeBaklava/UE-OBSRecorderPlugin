@@ -25,56 +25,12 @@ enum EOBSResponse : int8
 
 enum EClientRequest : int8
 {
-	OpCode1 = 1,
 	//Identify: Response to Hello message, should contain authentication string if authentication is required, along with PubSub subscriptions and other session parameters.
-	OpCode3 = 3,
+	OpCode1 = 1,
 	//Re-identify: Sent at any time after initial identification to update the provided session parameters.
-	OpCode6 = 6,
+	OpCode3 = 3,
 	//Request: Client is making a request to obs-websocket. Eg get current scene, create source. 
-};
-
-
-/**
- * FRequestData
- * 
- **/
-USTRUCT()
-struct FRequestData
-{
-	GENERATED_BODY()
-	FRequestData()
-	{
-	}
-	FRequestData(const FString& RequestType, const FString& RequestId): requestType(RequestType), requestId(RequestId)
-	{
-	}
-private:
-	UPROPERTY()
-	FString requestType;
-	UPROPERTY()
-	FString requestId;
-};
-
-/**
- * FMessage
- * 
- **/
-USTRUCT()
-struct FMessage
-{
-	GENERATED_BODY()
-	FMessage()
-	{
-	}
-	FMessage(const EClientRequest ClientRequest, const FRequestData& Request)
-		: op(ClientRequest), d(Request)
-	{
-	}
-
-	UPROPERTY()
-	uint8 op;
-	UPROPERTY()
-	FRequestData d;
+	OpCode6 = 6,
 };
 
 /**
@@ -100,7 +56,7 @@ public:
 	UFUNCTION(BlueprintCallable)
 	void StartConnection(bool& Success);
 
-	
+
 	/**
 	* public void OBSRecorder::StartRecord \n
 	* Start recording.
@@ -115,16 +71,9 @@ public:
 	**/
 	UFUNCTION(BlueprintCallable)
 	void StopRecord();
-	
-
-	//Generates the key
-	static FString GenerateAuthenticationKey(const FString& Password, const FString& Salt, const FString& Challenge);
-
-	static FString HexToBase64(FString& HexString);
 
 
 private:
-
 	/**
 	 * public void RespondOpCode0::StartConnection
 	 * Response(OpCode 1) to OpCode 0 message, should contain authentication string if authentication is required, along with PubSub subscriptions and other session parameters.
@@ -133,5 +82,10 @@ private:
 	 **/
 	void Identify(const TSharedPtr<FJsonObject> HelloMessageJson, const FString& Password);
 
-	const FString FormJsonRequestMessage(const FMessage& Message);
+	//Generates the key
+	static FString GenerateAuthenticationKey(const FString& Password, const FString& Salt, const FString& Challenge);
+
+	static FString HexToBase64(FString& HexString);
+
+	const FString FormJsonMessage(const EClientRequest OpCode, TSharedPtr<FJsonObject> DataJsonObject);
 };
