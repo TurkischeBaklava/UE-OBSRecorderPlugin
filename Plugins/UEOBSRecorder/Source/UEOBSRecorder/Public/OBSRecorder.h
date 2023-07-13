@@ -34,53 +34,20 @@ enum EClientRequest : int8
 };
 
 
-//TODO: Fix this
-USTRUCT()
-struct FData
-{
-	GENERATED_BODY()
-};
-
-/**
- * FAuthData
- * 
- **/
-USTRUCT()
-struct FAuthData : public FData
-{
-	GENERATED_BODY()
-	FAuthData()
-	{
-	}
-	FAuthData(const FString& AuthenticationKey): Authentication(AuthenticationKey)
-	{
-	}
-
-private:
-	UPROPERTY()
-	uint8 RpcVersion{1};
-	UPROPERTY()
-	FString Authentication;
-	UPROPERTY()
-	uint8 EventSubscriptions{33};
-};
-
 /**
  * FRequestData
  * 
  **/
 USTRUCT()
-struct FRequestData : public FData
+struct FRequestData
 {
 	GENERATED_BODY()
 	FRequestData()
 	{
 	}
-
 	FRequestData(const FString& RequestType, const FString& RequestId): requestType(RequestType), requestId(RequestId)
 	{
 	}
-
 private:
 	UPROPERTY()
 	FString requestType;
@@ -99,19 +66,16 @@ struct FMessage
 	FMessage()
 	{
 	}
-
-	FMessage(const EClientRequest ClientRequest, const FData& DataField)
-		: op(ClientRequest), d(DataField)
+	FMessage(const EClientRequest ClientRequest, const FRequestData& Request)
+		: op(ClientRequest), d(Request)
 	{
 	}
 
-private:
 	UPROPERTY()
 	uint8 op;
 	UPROPERTY()
-	FData d;
+	FRequestData d;
 };
-
 
 /**
  * 
@@ -155,5 +119,5 @@ private:
 	 **/
 	void Identify(const TSharedPtr<FJsonObject> HelloMessageJson, const FString& Password);
 
-	const FString FormJsonMessage(const FMessage& Message);
+	const FString FormJsonRequestMessage(const FMessage& Message);
 };

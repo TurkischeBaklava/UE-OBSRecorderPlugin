@@ -39,7 +39,7 @@ void UOBSRecorder::Initialize(FSubsystemCollectionBase& Collection)
 		UE_LOG(LogWebSocket, Log, TEXT("Connected to websocket server succesfully: \n\tPort: %s\n\tProtocol: %s\n"),
 		       *Port, *Protocol);
 	});
-	
+
 	WebSocket->OnMessage().AddLambda([&,Password](const FString Message)
 	{
 		UE_LOG(LogOBSRecorder, Log, TEXT("Message received: %s"), *Message);
@@ -60,12 +60,15 @@ void UOBSRecorder::Initialize(FSubsystemCollectionBase& Collection)
 				       "The identify request was received and validated, and the connection is now ready for normal operation."
 			       ));
 		}
-		
+		else if (MessageType == FString::FromInt(OpCode7))
+		{
+			
+		}
 	});
 
 	WebSocket->OnMessageSent().AddLambda([](const FString& MessageString)
 	{
-		UE_LOG(LogOBSRecorder,Log,TEXT("Message sent: %s"),*MessageString);	
+		UE_LOG(LogOBSRecorder, Log, TEXT("Message sent: %s"), *MessageString);
 	});
 
 	WebSocket->OnConnectionError().AddLambda([Port,Protocol](const FString& ErrorMessage)
@@ -106,7 +109,8 @@ void UOBSRecorder::StartConnection(bool& Success)
 
 void UOBSRecorder::StartRecord()
 {
-	WebSocket->Send(FormJsonMessage(FMessage(OpCode6,FRequestData("StartRecord",FGuid::NewGuid().ToString()))));
+	WebSocket->Send(
+		FormJsonRequestMessage(FMessage(OpCode6, FRequestData("StartRecord", FGuid::NewGuid().ToString()))));
 }
 
 FString UOBSRecorder::GenerateAuthenticationKey(const FString& Password, const FString& Salt, const FString& Challenge)
@@ -160,13 +164,15 @@ void UOBSRecorder::Identify(const TSharedPtr<FJsonObject> HelloMessageJson, cons
 
 	//Create Identify (OpCode 1) message
 
-	const FString IdentifyMessage = FormJsonMessage(FMessage(OpCode1, FAuthData(AuthenticationKey)));
-	/*UE_LOG(LogTemp, Display, TEXT("Json Message from struct: %s"),
-	       *IdentifyMessage);*/
+	//TODO: Fix this
+	const FString IdentifyMessage = FString::Printf(
+		TEXT("{\"op\": 1,\"d\": {\"rpcVersion\": 1,\"authentication\": \"%s\",\"eventSubscriptions\": 33}}"),
+		*AuthenticationKey);
+	
 	WebSocket->Send(IdentifyMessage); //Sends 
 }
 
-const FString UOBSRecorder::FormJsonMessage(const FMessage& Message)
+const FString UOBSRecorder::FormJsonRequestMessage(const FMessage& Message)
 {
 	FString JsonString;
 	if (FJsonObjectConverter::UStructToJsonObjectString(Message, JsonString))
