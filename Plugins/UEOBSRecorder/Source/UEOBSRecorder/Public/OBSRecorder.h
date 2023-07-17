@@ -11,7 +11,7 @@ DECLARE_LOG_CATEGORY_EXTERN(LogOBSRecorder, Log, All);
 
 DECLARE_LOG_CATEGORY_EXTERN(LogWebSocket, Log, All);
 
-enum EOBSResponse : int8
+enum EObsResponse : int8
 {
 	OpCode0 = 0,
 	//Hello: First message sent from the server immediately on client connection. Contains authentication information if auth is required. Also contains RPC version for version negotiation.
@@ -33,9 +33,24 @@ enum EClientRequest : int8
 	OpCode6 = 6,
 };
 
+UENUM(BlueprintType)
+enum class ERecordRequest : uint8
+{
+	StartRecord UMETA(DisplayName= "StartRecord"),
+	StopRecord UMETA(DisplayName= "StopRecord"),
+	PauseRecord UMETA(DisplayName= "PauseRecord"),
+	ResumeRecord UMETA(DisplayName= "ResumeRecord"),
+	ToggleRecord UMETA(DisplayName= "ToggleRecord"),
+	ToggleRecordPause UMETA(DisplayName= "ToggleRecordPause")
+};
+
+
+
 /**
+ *	OBSRecorder subsystem created for websocket communication and operations
+ *	created by @alper.gunes
  * 
- */
+ **/
 UCLASS()
 class UEOBSRECORDER_API UOBSRecorder : public UGameInstanceSubsystem
 {
@@ -58,19 +73,12 @@ public:
 
 
 	/**
-	* public void OBSRecorder::StartRecord \n
-	* Start recording.
-	**/
+	 *	Make the selected request from ERecordRequest to OBS.
+	 *	@param RecordRequest is intended request.
+	 * 
+	 **/
 	UFUNCTION(BlueprintCallable)
-	void StartRecord();
-
-
-	/**
-	* public void OBSRecorder::StopRecord \n
-	* Stop recording.
-	**/
-	UFUNCTION(BlueprintCallable)
-	void StopRecord();
+	void MakeRecordRequest(const ERecordRequest RecordRequest);
 
 
 private:

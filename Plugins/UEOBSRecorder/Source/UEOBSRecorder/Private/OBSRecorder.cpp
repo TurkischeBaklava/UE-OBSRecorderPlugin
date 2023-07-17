@@ -8,6 +8,7 @@
 #include "JsonBlueprintFunctionLibrary.h"
 #include "JsonObjectConverter.h"
 #include "JsonObjectWrapper.h"
+#include "SHA256Hash.h"
 #include "Containers/UnrealString.h"
 #include "WebSocketsModule.h"
 
@@ -105,11 +106,7 @@ void UOBSRecorder::Initialize(FSubsystemCollectionBase& Collection)
 		       *Port, *Protocol, StatusCode, *Reason, bWasClean);
 	});
 
-
-
-
-	FJsonObject JsonObject;
-	JsonObject.SetStringField(TEXT("Name"),TEXT("Alper"));
+	
 	
 }
 
@@ -125,20 +122,6 @@ void UOBSRecorder::Deinitialize()
 
 
 
-
-
-
-
-
-
-
-
-/****************
- *	CONNECTION
- *
- *	
- * 
- **/
 
 void UOBSRecorder::StartConnection(bool& Success)
 {
@@ -175,47 +158,15 @@ void UOBSRecorder::Identify(const TSharedPtr<FJsonObject> HelloMessageJson, cons
 	WebSocket->Send(FormJsonMessage(OpCode1,IdentifyJsonObject)); //Sends 
 }
 
-
-
-
-
-
-
-
-
-
-
-/****************
- *	REQUESTS
- *	Functions that send requests OBS
- *	
- * 
- **/
-
-void UOBSRecorder::StartRecord()
+void UOBSRecorder::MakeRecordRequest(const ERecordRequest RecordRequest)
 {
+	const FString Request = UEnum::GetDisplayValueAsText(RecordRequest).ToString();
 	const TSharedPtr<FJsonObject> RequestJsonObject = MakeShareable(new FJsonObject);
-	RequestJsonObject->SetStringField(TEXT("requestType"),TEXT("StartRecord"));
+	RequestJsonObject->SetStringField(TEXT("requestType"),Request);
 	RequestJsonObject->SetStringField(TEXT("requestId"),FGuid::NewGuid().ToString());
 	
 	WebSocket->Send(FormJsonMessage(OpCode6,RequestJsonObject));
 }
-
-void UOBSRecorder::StopRecord()
-{
-	const TSharedPtr<FJsonObject> RequestJsonObject = MakeShareable(new FJsonObject);
-	RequestJsonObject->SetStringField(TEXT("requestType"),TEXT("StopRecord"));
-	RequestJsonObject->SetStringField(TEXT("requestId"),FGuid::NewGuid().ToString());
-	
-	WebSocket->Send(FormJsonMessage(OpCode6,RequestJsonObject));
-}
-
-
-
-
-
-
-
 
 
 
