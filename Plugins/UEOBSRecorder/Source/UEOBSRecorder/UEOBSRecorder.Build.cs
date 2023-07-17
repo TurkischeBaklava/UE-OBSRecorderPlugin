@@ -43,7 +43,8 @@ public class UEOBSRecorder : ModuleRules
 				"Engine",
 				"Slate",
 				"SlateCore", 
-				"HashSHA256"
+				"HashSHA256",
+				"DeveloperSettings"
 				// ... add private dependencies that you statically link with here ...	
 			}
 			);

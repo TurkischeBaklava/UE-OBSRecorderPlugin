@@ -8,7 +8,7 @@
 #include "JsonBlueprintFunctionLibrary.h"
 #include "JsonObjectConverter.h"
 #include "JsonObjectWrapper.h"
-#include "SHA256Hash.h"
+#include "OBSRecorderSettings.h"
 #include "Containers/UnrealString.h"
 #include "WebSocketsModule.h"
 
@@ -27,14 +27,16 @@ void UOBSRecorder::Initialize(FSubsystemCollectionBase& Collection)
 		UE_LOG(LogWebSocket, Warning, TEXT("WS module is loaded!"));
 	}
 
-	//TODO: Add these to plugin settings
+	//Get OBS Recorder settings
+	const UOBSRecorderSettings* RecorderSettings = GetDefault<UOBSRecorderSettings>();
+	if (!RecorderSettings) return;
 	
-	const FString Host = TEXT("ws://localhost:");
-	const FString Port = TEXT("4456");
-	const FString URL = Host + Port;
+	const FString Port = RecorderSettings->ServerPort;
+	const FString URL = RecorderSettings->Host + Port;
 	const FString Protocol = TEXT("ws");
-	const FString Password = TEXT("yVlXQondHRJWsWuS");
+	const FString Password = RecorderSettings->OBSWebSocketPassword;
 
+	//Create websocket
 	WebSocket = FWebSocketsModule::Get().CreateWebSocket(URL, Protocol);
 
 
@@ -95,6 +97,8 @@ void UOBSRecorder::Initialize(FSubsystemCollectionBase& Collection)
 		UE_LOG(LogWebSocket, Error,
 		       TEXT("Failed to connect to WebSocket server: \n\tPort: %s\n\tProtocol: %s\n\tError Message: %s\n"),
 		       *Port, *Protocol, *ErrorMessage);
+		UE_LOG(LogWebSocket, Error,
+			   TEXT("Please check your plugin and obs-websocket settings."));
 	});
 
 	WebSocket->OnClosed().AddLambda([Port,Protocol](int32 StatusCode, const FString& Reason, bool bWasClean)
