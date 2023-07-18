@@ -173,6 +173,26 @@ void UOBSRecorder::MakeRecordRequest(const ERecordRequest RecordRequest)
 }
 
 
+void UOBSRecorder::SetRecordDirectory(const FString& Directory)
+{
+	TSharedPtr<FJsonObject> RequestJsonObject = MakeShareable(new FJsonObject);
+	RequestJsonObject->SetStringField(TEXT("requestType"),TEXT("SetRecordDirectory"));
+	RequestJsonObject->SetStringField(TEXT("requestId"),FGuid::NewGuid().ToString());
+
+	TSharedPtr<FJsonObject> RequestDataJsonObject = MakeShareable(new FJsonObject);
+	RequestDataJsonObject->SetStringField(TEXT("recordDirectory"),Directory);
+	RequestJsonObject->SetObjectField(TEXT("requestData"),RequestDataJsonObject);
+	WebSocket->Send(FormJsonMessage(OpCode6,RequestJsonObject));
+}
+
+void UOBSRecorder::MakeRequest(const FString& Request)
+{
+	TSharedPtr<FJsonObject> RequestJsonObject = MakeShareable(new FJsonObject);
+	RequestJsonObject->SetStringField(TEXT("requestType"),Request);
+	RequestJsonObject->SetStringField(TEXT("requestId"),FGuid::NewGuid().ToString());
+	WebSocket->Send(FormJsonMessage(OpCode6,RequestJsonObject));
+}
+
 
 /****************
  *	HELPERS

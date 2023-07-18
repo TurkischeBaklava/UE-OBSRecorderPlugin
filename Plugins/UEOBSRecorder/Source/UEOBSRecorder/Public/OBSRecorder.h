@@ -80,6 +80,19 @@ public:
 	UFUNCTION(BlueprintCallable)
 	void MakeRecordRequest(const ERecordRequest RecordRequest);
 
+	
+	/**
+	 *	Sets the current directory that the record output writes files to.
+	 *	@param Directory: Destination path.
+	 *	@brief SetRecordDirectory to be released in 5.3.0
+	 **/
+	UFUNCTION(BlueprintCallable,meta=(DeprecatedFunction))
+	void SetRecordDirectory(const FString& Directory);
+
+
+	UFUNCTION(BlueprintCallable)
+	void MakeRequest(const FString& Request);
+
 
 private:
 	/**
