@@ -5,6 +5,7 @@
 #include "CoreMinimal.h"
 #include "Subsystems/GameInstanceSubsystem.h"
 #include "IWebSocket.h"
+#include "Engine/DataTable.h"
 #include "OBSRecorder.generated.h"
 
 DECLARE_LOG_CATEGORY_EXTERN(LogOBSRecorder, Log, All);
@@ -108,17 +109,20 @@ public:
 	UFUNCTION(BlueprintCallable, Category=OBSRecorder)
 	void MakeGetRequest(const FString& Request);
 
-	
+
+	/**
+	 *	Make request to get simple respond.
+	 *	@param InputName: Name of the input to toggle the mute state of.
+	 * 
+	 **/
 	UFUNCTION(BlueprintCallable, Category=OBSRecorder)
 	void ToggleInputMute(const FString& InputName);
 
 
 private:
-
-
 	//HELPER FUNCTIONS
 
-	
+
 	/**
 	 * public void RespondOpCode0::StartConnection
 	 * Response(OpCode 1) to OpCode 0 message, should contain authentication string if authentication is required, along with PubSub subscriptions and other session parameters.
@@ -127,12 +131,31 @@ private:
 	 **/
 	void Identify(const TSharedPtr<FJsonObject> HelloMessageJson, const FString& Password);
 
-	//Generates the key
+
+	/**
+	 * GenerateAuthenticationKey
+	 * obs-websocket uses SHA256 to transmit authentication credentials.
+	 * The server starts by sending an object in the authentication field of its Hello message data.
+	 * The client processes the authentication challenge and responds via the authentication string in the Identify message data.
+	 * @param Salt: Salt key.
+	 * @param Challenge: Challenge key.
+	 * @param Password: websocket password
+	 **/
 	static FString GenerateAuthenticationKey(const FString& Password, const FString& Salt, const FString& Challenge);
 
 	static FString HexToBase64(FString& HexString);
 
 	const FString FormJsonMessage(const EClientRequest OpCode, TSharedPtr<FJsonObject> DataJsonObject);
 
-	const FString MakeRequestJsonObject(const FString RequestType,const TMap<FString,FString>& StringField);
+	/**
+	 *	This function is used to send strings messages to OBS websocket in JSON form.
+	 *	It is not enough generic as it only covers string:string fields.
+	 *
+	 * @param RequestType: Request message to OBS websocket.
+	 * @param StringField: Request data in json object form (optional).
+	 * @return String request message with request type and optional string:string fields.
+	 */
+	const FString MakeRequestJsonObject(const FString RequestType, const TMap<FString, FString>& StringField);
+
+	
 };

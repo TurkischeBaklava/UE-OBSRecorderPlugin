@@ -165,28 +165,7 @@ void UOBSRecorder::Identify(const TSharedPtr<FJsonObject> HelloMessageJson, cons
 void UOBSRecorder::MakeRecordRequest(const ERecordRequest RecordRequest)
 {
 	const FString Request = UEnum::GetDisplayValueAsText(RecordRequest).ToString();
-	const TSharedPtr<FJsonObject> RequestJsonObject = MakeShareable(new FJsonObject);
-	RequestJsonObject->SetStringField(TEXT("requestType"),Request);
-	RequestJsonObject->SetStringField(TEXT("requestId"),FGuid::NewGuid().ToString());
-
-	TSharedPtr<FJsonObject> RequestDataJsonObject = MakeShareable(new FJsonObject);
-	RequestJsonObject->SetObjectField(TEXT("requestData"),RequestDataJsonObject);
-	
-	WebSocket->Send(FormJsonMessage(OpCode6,RequestJsonObject));
-}
-
-
-
-void UOBSRecorder::SetRecordDirectory(const FString& Directory)
-{
-}
-
-void UOBSRecorder::MakeGetRequest(const FString& Request)
-{
-	TSharedPtr<FJsonObject> RequestJsonObject = MakeShareable(new FJsonObject);
-	RequestJsonObject->SetStringField(TEXT("requestType"),Request);
-	RequestJsonObject->SetStringField(TEXT("requestId"),FGuid::NewGuid().ToString());
-	WebSocket->Send(FormJsonMessage(OpCode6,RequestJsonObject));
+	WebSocket->Send(MakeRequestJsonObject(Request,TMap<FString,FString>()));
 }
 
 void UOBSRecorder::ToggleInputMute(const FString& InputName)
@@ -195,6 +174,21 @@ void UOBSRecorder::ToggleInputMute(const FString& InputName)
 	Map.Add(TEXT("inputName"),InputName);
 	WebSocket->Send(MakeRequestJsonObject(TEXT("ToggleInputMute"),Map));
 }
+
+void UOBSRecorder::SetRecordDirectory(const FString& Directory)
+{
+	TMap<FString,FString> Map;
+	Map.Add(TEXT("inputName"),Directory);
+	WebSocket->Send(MakeRequestJsonObject(TEXT("SetRecordDirectory"),Map));
+}
+
+void UOBSRecorder::MakeGetRequest(const FString& Request)
+{
+	WebSocket->Send(MakeRequestJsonObject(Request,TMap<FString,FString>()));
+}
+
+
+
 
 
 const FString UOBSRecorder::FormJsonMessage(const EClientRequest OpCode, TSharedPtr<FJsonObject> DataJsonObject)

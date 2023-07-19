@@ -9,7 +9,7 @@
 /**
  * 
  */
-UCLASS(Config=EditorPerProjectUserSettings,meta=(DisplayName="OBS Recorder"))
+UCLASS(Config=game,meta=(DisplayName="OBS Recorder"))
 class UEOBSRECORDER_API UOBSRecorderSettings : public UDeveloperSettings
 {
 	GENERATED_BODY()
