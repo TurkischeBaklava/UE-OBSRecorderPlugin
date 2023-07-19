@@ -5,7 +5,8 @@
 #include "CoreMinimal.h"
 #include "Subsystems/GameInstanceSubsystem.h"
 #include "IWebSocket.h"
-#include "Engine/DataTable.h"
+#include "Json/Public/Dom/JsonObject.h"
+#include "JsonObjectWrapper.h"
 #include "OBSRecorder.generated.h"
 
 DECLARE_LOG_CATEGORY_EXTERN(LogOBSRecorder, Log, All);

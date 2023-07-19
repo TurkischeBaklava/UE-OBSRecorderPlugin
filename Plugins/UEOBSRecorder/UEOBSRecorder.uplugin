@@ -5,7 +5,7 @@
 	"FriendlyName": "UEOBSRecorder",
 	"Description": "UE-OBSRecorderPlugin",
 	"Category": "Other",
-	"CreatedBy": "alper",
+	"CreatedBy": "alper.gunes",
 	"CreatedByURL": "",
 	"DocsURL": "",
 	"MarketplaceURL": "",
@@ -18,7 +18,8 @@
 		{
 			"Name": "UEOBSRecorder",
 			"Type": "Runtime",
-			"LoadingPhase": "Default"
+			"LoadingPhase": "PreLoadingScreen",
+			"WhitelistPlatforms": ["Win64"]
 		}
 	],
 	"Plugins": [

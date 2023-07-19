@@ -4,6 +4,7 @@
 #include "OBSRecorder.h"
 #include "IWebSocket.h"
 #include "SHA256Hash.h"
+#include "Misc/Base64.h"
 #include "HashSHA256BPLibrary.h"
 #include "JsonBlueprintFunctionLibrary.h"
 #include "JsonObjectConverter.h"
@@ -11,6 +12,7 @@
 #include "OBSRecorderSettings.h"
 #include "Containers/UnrealString.h"
 #include "WebSocketsModule.h"
+#include "Kismet/GameplayStatics.h"
 
 DEFINE_LOG_CATEGORY(LogWebSocket);
 DEFINE_LOG_CATEGORY(LogOBSRecorder);
@@ -55,7 +57,7 @@ void UOBSRecorder::Initialize(FSubsystemCollectionBase& Collection)
 		UE_LOG(LogOBSRecorder, Log, TEXT("Message received: %s"), *Message);
 
 		FJsonObjectWrapper JsonObjectWrapper;
-		UJsonBlueprintFunctionLibrary::FromString(this->GetWorld(), Message, JsonObjectWrapper);
+		UJsonBlueprintFunctionLibrary::FromString(nullptr,Message, JsonObjectWrapper); //Giving nullptr as an argument here. 
 		const TSharedPtr<FJsonObject> OBSJsonResponse = JsonObjectWrapper.JsonObject;
 
 		const FString MessageType = OBSJsonResponse->GetStringField("op");
