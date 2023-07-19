@@ -168,24 +168,20 @@ void UOBSRecorder::MakeRecordRequest(const ERecordRequest RecordRequest)
 	const TSharedPtr<FJsonObject> RequestJsonObject = MakeShareable(new FJsonObject);
 	RequestJsonObject->SetStringField(TEXT("requestType"),Request);
 	RequestJsonObject->SetStringField(TEXT("requestId"),FGuid::NewGuid().ToString());
+
+	TSharedPtr<FJsonObject> RequestDataJsonObject = MakeShareable(new FJsonObject);
+	RequestJsonObject->SetObjectField(TEXT("requestData"),RequestDataJsonObject);
 	
 	WebSocket->Send(FormJsonMessage(OpCode6,RequestJsonObject));
 }
 
 
+
 void UOBSRecorder::SetRecordDirectory(const FString& Directory)
 {
-	TSharedPtr<FJsonObject> RequestJsonObject = MakeShareable(new FJsonObject);
-	RequestJsonObject->SetStringField(TEXT("requestType"),TEXT("SetRecordDirectory"));
-	RequestJsonObject->SetStringField(TEXT("requestId"),FGuid::NewGuid().ToString());
-
-	TSharedPtr<FJsonObject> RequestDataJsonObject = MakeShareable(new FJsonObject);
-	RequestDataJsonObject->SetStringField(TEXT("recordDirectory"),Directory);
-	RequestJsonObject->SetObjectField(TEXT("requestData"),RequestDataJsonObject);
-	WebSocket->Send(FormJsonMessage(OpCode6,RequestJsonObject));
 }
 
-void UOBSRecorder::MakeRequest(const FString& Request)
+void UOBSRecorder::MakeGetRequest(const FString& Request)
 {
 	TSharedPtr<FJsonObject> RequestJsonObject = MakeShareable(new FJsonObject);
 	RequestJsonObject->SetStringField(TEXT("requestType"),Request);
@@ -193,13 +189,12 @@ void UOBSRecorder::MakeRequest(const FString& Request)
 	WebSocket->Send(FormJsonMessage(OpCode6,RequestJsonObject));
 }
 
-
-/****************
- *	HELPERS
- *
- *	
- * 
- **/
+void UOBSRecorder::ToggleInputMute(const FString& InputName)
+{
+	TMap<FString,FString> Map;
+	Map.Add(TEXT("inputName"),InputName);
+	WebSocket->Send(MakeRequestJsonObject(TEXT("ToggleInputMute"),Map));
+}
 
 
 const FString UOBSRecorder::FormJsonMessage(const EClientRequest OpCode, TSharedPtr<FJsonObject> DataJsonObject)
@@ -214,6 +209,25 @@ const FString UOBSRecorder::FormJsonMessage(const EClientRequest OpCode, TShared
 	FJsonSerializer::Serialize(JsonObject,Writer);
 
 	return OutputJsonString;
+}
+
+const FString UOBSRecorder::MakeRequestJsonObject(const FString RequestType,const TMap<FString, FString>& StringField)
+{
+	const TSharedPtr<FJsonObject> RequestJsonObject = MakeShareable(new FJsonObject);
+	RequestJsonObject->SetStringField(TEXT("requestType"),RequestType);
+	RequestJsonObject->SetStringField(TEXT("requestId"),FGuid::NewGuid().ToString());
+
+	const TSharedPtr<FJsonObject> RequestDataJsonObject = MakeShareable(new FJsonObject);
+	RequestJsonObject->SetObjectField(TEXT("requestData"),RequestDataJsonObject);
+	if (!StringField.IsEmpty())
+	{
+		for (auto n: StringField)
+		{
+			RequestDataJsonObject->SetStringField(n.Key,n.Value);
+		}
+	}
+	
+	return FormJsonMessage(OpCode6,RequestJsonObject);
 }
 
 FString UOBSRecorder::GenerateAuthenticationKey(const FString& Password, const FString& Salt, const FString& Challenge)

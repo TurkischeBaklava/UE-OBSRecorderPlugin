@@ -45,7 +45,6 @@ enum class ERecordRequest : uint8
 };
 
 
-
 /**
  *	OBSRecorder subsystem created for websocket communication and operations
  *	created by @alper.gunes
@@ -64,11 +63,22 @@ public:
 
 
 	/**
+	 *	Remote control function list:
+	 *	StartConnection
+	 *	MakeRecordRequest
+	 *	SetRecordDirectory
+	 *	MakeGetRequest
+	 *	Input Mute Functions...
+	 *	Audio Functions
+	 * 
+	 */
+
+	/**
 	* public void OBSRecorder::StartConnection \n
 	* Start a new connection with OBS websocket.
 	* @return Success value
 	**/
-	UFUNCTION(BlueprintCallable)
+	UFUNCTION(BlueprintCallable, Category=OBSRecorder)
 	void StartConnection(bool& Success);
 
 
@@ -77,24 +87,38 @@ public:
 	 *	@param RecordRequest is intended request.
 	 * 
 	 **/
-	UFUNCTION(BlueprintCallable)
+	UFUNCTION(BlueprintCallable, Category=OBSRecorder)
 	void MakeRecordRequest(const ERecordRequest RecordRequest);
 
-	
+
 	/**
 	 *	Sets the current directory that the record output writes files to.
 	 *	@param Directory: Destination path.
 	 *	@brief SetRecordDirectory to be released in 5.3.0
 	 **/
-	UFUNCTION(BlueprintCallable,meta=(DeprecatedFunction))
+	UFUNCTION(BlueprintCallable, meta=(DeprecatedFunction), Category=OBSRecorder)
 	void SetRecordDirectory(const FString& Directory);
 
 
-	UFUNCTION(BlueprintCallable)
-	void MakeRequest(const FString& Request);
+	/**
+	 *	Make request to get simple respond.
+	 *	@param Request: is intended request. No request fields are allowed.
+	 * 
+	 **/
+	UFUNCTION(BlueprintCallable, Category=OBSRecorder)
+	void MakeGetRequest(const FString& Request);
+
+	
+	UFUNCTION(BlueprintCallable, Category=OBSRecorder)
+	void ToggleInputMute(const FString& InputName);
 
 
 private:
+
+
+	//HELPER FUNCTIONS
+
+	
 	/**
 	 * public void RespondOpCode0::StartConnection
 	 * Response(OpCode 1) to OpCode 0 message, should contain authentication string if authentication is required, along with PubSub subscriptions and other session parameters.
@@ -109,4 +133,6 @@ private:
 	static FString HexToBase64(FString& HexString);
 
 	const FString FormJsonMessage(const EClientRequest OpCode, TSharedPtr<FJsonObject> DataJsonObject);
+
+	const FString MakeRequestJsonObject(const FString RequestType,const TMap<FString,FString>& StringField);
 };
