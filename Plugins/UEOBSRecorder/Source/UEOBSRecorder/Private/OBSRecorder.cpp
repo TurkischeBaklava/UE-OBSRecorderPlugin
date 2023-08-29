@@ -177,11 +177,29 @@ void UOBSRecorder::ToggleInputMute(const FString& InputName)
 	WebSocket->Send(MakeRequestJsonObject(TEXT("ToggleInputMute"),Map));
 }
 
-void UOBSRecorder::SetRecordDirectory(const FString& Directory)
+void UOBSRecorder::GetProfileParameter(const FString& parameterCategory,const FString& parameterName)
 {
 	TMap<FString,FString> Map;
-	Map.Add(TEXT("inputName"),Directory);
-	WebSocket->Send(MakeRequestJsonObject(TEXT("SetRecordDirectory"),Map));
+	Map.Add(TEXT("parameterCategory"),parameterCategory);
+	Map.Add(TEXT("parameterName"),parameterName);
+	WebSocket->Send(MakeRequestJsonObject(TEXT("GetProfileParameter"),Map));
+}
+
+void UOBSRecorder::SetRecordDirectory(const FString& Directory, const FString& FileName)
+{
+	TMap<FString,FString> Map;
+	Map.Add(TEXT("parameterValue"),Directory);
+	Map.Add(TEXT("parameterName"),"FilePath");
+	Map.Add(TEXT("parameterCategory"),"SimpleOutput");
+	
+	WebSocket->Send(MakeRequestJsonObject(TEXT("SetProfileParameter"),Map));
+
+
+	TMap<FString,FString> Map2;
+	Map2.Add(TEXT("parameterValue"),FileName);
+	Map2.Add(TEXT("parameterName"),"FilenameFormatting");
+	Map2.Add(TEXT("parameterCategory"),"Output"); //As opposed to above parameterCategory this should be "Output".
+	WebSocket->Send(MakeRequestJsonObject(TEXT("SetProfileParameter"),Map2));
 }
 
 void UOBSRecorder::MakeGetRequest(const FString& Request)
@@ -225,6 +243,7 @@ const FString UOBSRecorder::MakeRequestJsonObject(const FString RequestType,cons
 	
 	return FormJsonMessage(OpCode6,RequestJsonObject);
 }
+
 
 FString UOBSRecorder::GenerateAuthenticationKey(const FString& Password, const FString& Salt, const FString& Challenge)
 {

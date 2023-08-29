@@ -98,8 +98,8 @@ public:
 	 *	@param Directory: Destination path.
 	 *	@brief SetRecordDirectory to be released in 5.3.0
 	 **/
-	UFUNCTION(BlueprintCallable, meta=(DeprecatedFunction), Category=OBSRecorder)
-	void SetRecordDirectory(const FString& Directory);
+	UFUNCTION(BlueprintCallable, Category=OBSRecorder)
+	void SetRecordDirectory(const FString& Directory, const FString& FileName);
 
 
 	/**
@@ -118,6 +118,10 @@ public:
 	 **/
 	UFUNCTION(BlueprintCallable, Category=OBSRecorder)
 	void ToggleInputMute(const FString& InputName);
+
+	
+	UFUNCTION(BlueprintCallable, Category=OBSRecorder)
+	void GetProfileParameter(const FString& parameterCategory,const FString& parameterName);
 
 
 private:
@@ -157,6 +161,5 @@ private:
 	 * @return String request message with request type and optional string:string fields.
 	 */
 	const FString MakeRequestJsonObject(const FString RequestType, const TMap<FString, FString>& StringField);
-
 	
 };
